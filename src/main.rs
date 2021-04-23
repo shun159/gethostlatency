@@ -104,42 +104,42 @@ fn main() -> Result<()> {
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__entry_gethostbyname")
+        .progs()
+        .handle__entry_gethostbyname()
         .attach_uprobe(false, -1, pathname, func_ofs)?;
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__return_gethostbyname")
+        .progs()
+        .handle__return_gethostbyname()
         .attach_uprobe(true, -1, pathname, func_ofs)?;
 
     let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "gethostbyname2")?.unwrap();
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__entry_gethostbyname2")
+        .progs()
+        .handle__entry_gethostbyname2()
         .attach_uprobe(false, -1, pathname, func_ofs)?;
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__return_gethostbyname2")
+        .progs()
+        .handle__return_gethostbyname2()
         .attach_uprobe(true, -1, pathname, func_ofs)?;
 
     let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "getaddrinfo")?.unwrap();
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__entry_getaddrinfo")
+        .progs()
+        .handle__entry_getaddrinfo()
         .attach_uprobe(false, -1, pathname, func_ofs)?;
     let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
     let _res = skel
-        .obj
-        .prog_unwrap("handle__return_getaddrinfo")
+        .progs()
+        .handle__return_getaddrinfo()
         .attach_uprobe(true, -1, pathname, func_ofs)?;
 
     let perf = PerfBufferBuilder::new(skel.maps().events())
