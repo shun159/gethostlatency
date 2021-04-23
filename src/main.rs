@@ -14,10 +14,12 @@ use std::process::exit;
 use structopt::StructOpt;
 
 mod bpf;
-//use bpf::*;
+use bpf::*;
 
 mod uprobe;
 use uprobe::*;
+
+const LIBC_PATH: &'static str = "/lib/x86_64-linux-gnu/libc.so.6";
 
 #[derive(Debug, StructOpt)]
 struct Command {
@@ -75,7 +77,7 @@ fn handle_event(_cpu: i32, data: &[u8]) {
     let host = std::str::from_utf8(&event.host).unwrap();
     let lat = event.delta as f64 / 1_000_000.0;
     println!(
-        "{:<9} pid: {:<6} comm: {:<16} host: {:<30} {:>10.2} msec",
+        "{:<9} pid: {:<6} comm: {:<16} host: {:<30} latency: {:>10.2} msec",
         now,
         pid,
         comm.trim_end_matches(char::from(0)),
@@ -90,82 +92,57 @@ fn handle_lost_events(cpu: i32, count: u64) {
 
 fn main() -> Result<()> {
     let options = Command::from_args();
-
-    if !options.obj_path.as_path().exists() {
-        eprintln!("{} doesn't exist", options.obj_path.as_path().display());
-        exit(1);
-    }
-
-    let mut obj_builder = libbpf_rs::ObjectBuilder::default();
+    let mut skel_builder = GethostlatencySkelBuilder::default();
     if options.verbose {
-        obj_builder.debug(true);
+        skel_builder.obj_builder.debug(true);
     }
-
     bump_memlock_rlimit()?;
-    let mut obj = obj_builder.open_file(options.obj_path)?.load()?;
-    let func_ofs = SymbolResolver::find_in_file(
-        Path::new("/lib/x86_64-linux-gnu/libc.so.6"),
-        "gethostbyname",
-    )
-    .unwrap()
-    .unwrap();
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+    let open_skel = skel_builder.open()?;
+    let mut skel = open_skel.load()?;
+
+    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "gethostbyname")?.unwrap();
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__entry_gethostbyname")
-        .attach_uprobe(false, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+        .attach_uprobe(false, -1, pathname, func_ofs)?;
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__return_gethostbyname")
-        .attach_uprobe(true, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
-    let func_ofs = SymbolResolver::find_in_file(
-        Path::new("/lib/x86_64-linux-gnu/libc.so.6"),
-        "gethostbyname2",
-    )
-    .unwrap()
-    .unwrap();
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+        .attach_uprobe(true, -1, pathname, func_ofs)?;
+
+    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "gethostbyname2")?.unwrap();
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__entry_gethostbyname2")
-        .attach_uprobe(false, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+        .attach_uprobe(false, -1, pathname, func_ofs)?;
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__return_gethostbyname2")
-        .attach_uprobe(true, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
+        .attach_uprobe(true, -1, pathname, func_ofs)?;
 
-    let func_ofs =
-        SymbolResolver::find_in_file(Path::new("/lib/x86_64-linux-gnu/libc.so.6"), "getaddrinfo")
-            .unwrap()
-            .unwrap();
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "getaddrinfo")?.unwrap();
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__entry_getaddrinfo")
-        .attach_uprobe(false, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
-    let mut pathname = String::from("/lib/x86_64-linux-gnu/libc.so.6");
+        .attach_uprobe(false, -1, pathname, func_ofs)?;
+    let mut pathname = String::from(LIBC_PATH);
     pathname.push_str("\0");
-    let _ret = obj
+    let _res = skel
+        .obj
         .prog_unwrap("handle__return_getaddrinfo")
-        .attach_uprobe(true, -1, pathname, func_ofs)
-        .unwrap();
-    println!("ret: OK?");
-    //attach_uprobes(&mut obj);
+        .attach_uprobe(true, -1, pathname, func_ofs)?;
 
-    let events = obj.map_unwrap("events");
-    let perf = PerfBufferBuilder::new(events)
+    let perf = PerfBufferBuilder::new(skel.maps().events())
         .sample_cb(handle_event)
         .lost_cb(handle_lost_events)
         .build()
