@@ -1,32 +1,22 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 
-extern crate regex;
-
-use core::time::Duration;
-
 use anyhow::{bail, Result};
 use chrono::Local;
+use core::time::Duration;
 use libbpf_rs::PerfBufferBuilder;
 use libc::{rlimit, setrlimit, RLIMIT_MEMLOCK};
 use plain::Plain;
-use std::path::{Path, PathBuf};
 use std::process::exit;
 use structopt::StructOpt;
+use sym_finder;
 
 mod bpf;
 use bpf::*;
-
-mod uprobe;
-use uprobe::*;
-
-const LIBC_PATH: &'static str = "/lib/x86_64-linux-gnu/libc.so.6";
 
 #[derive(Debug, StructOpt)]
 struct Command {
     #[structopt(short, long)]
     verbose: bool,
-    #[structopt(short, long, default_value = "target/bpf/gethostlatency.bpf.o")]
-    obj_path: PathBuf,
 }
 
 pub mod gethostlatency_bss_types {
@@ -99,48 +89,47 @@ fn main() -> Result<()> {
     bump_memlock_rlimit()?;
     let open_skel = skel_builder.open()?;
     let mut skel = open_skel.load()?;
+    let pid = std::process::id() as libc::pid_t;
+    let pathname = sym_finder::resolve_proc_maps_lib(pid, "libc").unwrap() + "\0";
 
-    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "gethostbyname")?.unwrap();
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")
+        .unwrap()
+        .unwrap()
+        .st_value as usize;
     let _res = skel
         .progs()
         .handle__entry_gethostbyname()
-        .attach_uprobe(false, -1, pathname, func_ofs)?;
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+        .attach_uprobe(false, -1, &pathname, func_ofs)?;
     let _res = skel
         .progs()
         .handle__return_gethostbyname()
-        .attach_uprobe(true, -1, pathname, func_ofs)?;
+        .attach_uprobe(true, -1, &pathname, func_ofs)?;
 
-    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "gethostbyname2")?.unwrap();
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")
+        .unwrap()
+        .unwrap()
+        .st_value as usize;
     let _res = skel
         .progs()
         .handle__entry_gethostbyname2()
-        .attach_uprobe(false, -1, pathname, func_ofs)?;
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+        .attach_uprobe(false, -1, &pathname, func_ofs)?;
     let _res = skel
         .progs()
         .handle__return_gethostbyname2()
-        .attach_uprobe(true, -1, pathname, func_ofs)?;
+        .attach_uprobe(true, -1, &pathname, func_ofs)?;
 
-    let func_ofs = SymbolResolver::find_in_file(Path::new(LIBC_PATH), "getaddrinfo")?.unwrap();
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+    let func_ofs = sym_finder::find_sym(pid, "libc", "getaddrinfo")
+        .unwrap()
+        .unwrap()
+        .st_value as usize;
     let _res = skel
         .progs()
         .handle__entry_getaddrinfo()
-        .attach_uprobe(false, -1, pathname, func_ofs)?;
-    let mut pathname = String::from(LIBC_PATH);
-    pathname.push_str("\0");
+        .attach_uprobe(false, -1, &pathname, func_ofs)?;
     let _res = skel
         .progs()
         .handle__return_getaddrinfo()
-        .attach_uprobe(true, -1, pathname, func_ofs)?;
+        .attach_uprobe(true, -1, &pathname, func_ofs)?;
 
     let perf = PerfBufferBuilder::new(skel.maps().events())
         .sample_cb(handle_event)
