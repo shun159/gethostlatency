@@ -88,12 +88,11 @@ fn main() -> Result<()> {
     }
     bump_memlock_rlimit()?;
     let open_skel = skel_builder.open()?;
-    let mut skel = open_skel.load()?;
+    let skel = open_skel.load()?;
     let pid = std::process::id() as libc::pid_t;
     let pathname = sym_finder::resolve_proc_maps_lib(pid, "libc").unwrap() + "\0";
 
-    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")
-        .unwrap()
+    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")?
         .unwrap()
         .st_value as usize;
     let _res = skel
@@ -105,8 +104,7 @@ fn main() -> Result<()> {
         .handle__return_gethostbyname()
         .attach_uprobe(true, -1, &pathname, func_ofs)?;
 
-    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")
-        .unwrap()
+    let func_ofs = sym_finder::find_sym(pid, "libc", "gethostbyname")?
         .unwrap()
         .st_value as usize;
     let _res = skel
@@ -118,8 +116,7 @@ fn main() -> Result<()> {
         .handle__return_gethostbyname2()
         .attach_uprobe(true, -1, &pathname, func_ofs)?;
 
-    let func_ofs = sym_finder::find_sym(pid, "libc", "getaddrinfo")
-        .unwrap()
+    let func_ofs = sym_finder::find_sym(pid, "libc", "getaddrinfo")?
         .unwrap()
         .st_value as usize;
     let _res = skel
@@ -134,8 +131,7 @@ fn main() -> Result<()> {
     let perf = PerfBufferBuilder::new(skel.maps().events())
         .sample_cb(handle_event)
         .lost_cb(handle_lost_events)
-        .build()
-        .unwrap();
+        .build()?;
 
     loop {
         let ret = perf.poll(Duration::from_millis(100));

@@ -39,53 +39,99 @@ impl<'a> GethostlatencySkelBuilder {
             return Err(libbpf_rs::Error::System(-ret));
         }
 
-        let obj = unsafe { libbpf_rs::OpenObject::from_ptr(skel_config.object_ptr()) };
+        let obj = unsafe { libbpf_rs::OpenObject::from_ptr(skel_config.object_ptr())? };
 
         Ok(OpenGethostlatencySkel { obj, skel_config })
     }
 }
 
 pub struct OpenGethostlatencyMaps<'a> {
-    inner: &'a mut libbpf_rs::OpenObject,
+    inner: &'a libbpf_rs::OpenObject,
 }
 
 impl<'a> OpenGethostlatencyMaps<'a> {
+    pub fn start(&self) -> &libbpf_rs::OpenMap {
+        self.inner.map("start").unwrap()
+    }
+
+    pub fn events(&self) -> &libbpf_rs::OpenMap {
+        self.inner.map("events").unwrap()
+    }
+}
+
+pub struct OpenGethostlatencyMapsMut<'a> {
+    inner: &'a mut libbpf_rs::OpenObject,
+}
+
+impl<'a> OpenGethostlatencyMapsMut<'a> {
     pub fn start(&mut self) -> &mut libbpf_rs::OpenMap {
-        self.inner.map_unwrap("start")
+        self.inner.map_mut("start").unwrap()
     }
 
     pub fn events(&mut self) -> &mut libbpf_rs::OpenMap {
-        self.inner.map_unwrap("events")
+        self.inner.map_mut("events").unwrap()
     }
 }
 
 pub struct OpenGethostlatencyProgs<'a> {
-    inner: &'a mut libbpf_rs::OpenObject,
+    inner: &'a libbpf_rs::OpenObject,
 }
 
 impl<'a> OpenGethostlatencyProgs<'a> {
+    pub fn handle__entry_getaddrinfo(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__entry_getaddrinfo").unwrap()
+    }
+
+    pub fn handle__entry_gethostbyname(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__entry_gethostbyname").unwrap()
+    }
+
+    pub fn handle__entry_gethostbyname2(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__entry_gethostbyname2").unwrap()
+    }
+
+    pub fn handle__return_getaddrinfo(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__return_getaddrinfo").unwrap()
+    }
+
+    pub fn handle__return_gethostbyname(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__return_gethostbyname").unwrap()
+    }
+
+    pub fn handle__return_gethostbyname2(&self) -> &libbpf_rs::OpenProgram {
+        self.inner.prog("handle__return_gethostbyname2").unwrap()
+    }
+}
+
+pub struct OpenGethostlatencyProgsMut<'a> {
+    inner: &'a mut libbpf_rs::OpenObject,
+}
+
+impl<'a> OpenGethostlatencyProgsMut<'a> {
     pub fn handle__entry_getaddrinfo(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__entry_getaddrinfo")
+        self.inner.prog_mut("handle__entry_getaddrinfo").unwrap()
     }
 
     pub fn handle__entry_gethostbyname(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__entry_gethostbyname")
+        self.inner.prog_mut("handle__entry_gethostbyname").unwrap()
     }
 
     pub fn handle__entry_gethostbyname2(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__entry_gethostbyname2")
+        self.inner.prog_mut("handle__entry_gethostbyname2").unwrap()
     }
 
     pub fn handle__return_getaddrinfo(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__return_getaddrinfo")
+        self.inner.prog_mut("handle__return_getaddrinfo").unwrap()
     }
 
     pub fn handle__return_gethostbyname(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__return_gethostbyname")
+        self.inner.prog_mut("handle__return_gethostbyname").unwrap()
     }
 
     pub fn handle__return_gethostbyname2(&mut self) -> &mut libbpf_rs::OpenProgram {
-        self.inner.prog_unwrap("handle__return_gethostbyname2")
+        self.inner
+            .prog_mut("handle__return_gethostbyname2")
+            .unwrap()
     }
 }
 
@@ -101,7 +147,7 @@ impl<'a> OpenGethostlatencySkel<'a> {
             return Err(libbpf_rs::Error::System(-ret));
         }
 
-        let obj = unsafe { libbpf_rs::Object::from_ptr(self.obj.take_ptr()) };
+        let obj = unsafe { libbpf_rs::Object::from_ptr(self.obj.take_ptr())? };
 
         Ok(GethostlatencySkel {
             obj,
@@ -110,60 +156,114 @@ impl<'a> OpenGethostlatencySkel<'a> {
         })
     }
 
-    pub fn progs(&mut self) -> OpenGethostlatencyProgs {
-        OpenGethostlatencyProgs {
+    pub fn progs(&self) -> OpenGethostlatencyProgs {
+        OpenGethostlatencyProgs { inner: &self.obj }
+    }
+
+    pub fn progs_mut(&mut self) -> OpenGethostlatencyProgsMut {
+        OpenGethostlatencyProgsMut {
             inner: &mut self.obj,
         }
     }
 
-    pub fn maps(&mut self) -> OpenGethostlatencyMaps {
-        OpenGethostlatencyMaps {
+    pub fn maps(&self) -> OpenGethostlatencyMaps {
+        OpenGethostlatencyMaps { inner: &self.obj }
+    }
+
+    pub fn maps_mut(&mut self) -> OpenGethostlatencyMapsMut {
+        OpenGethostlatencyMapsMut {
             inner: &mut self.obj,
         }
     }
 }
 
 pub struct GethostlatencyMaps<'a> {
-    inner: &'a mut libbpf_rs::Object,
+    inner: &'a libbpf_rs::Object,
 }
 
 impl<'a> GethostlatencyMaps<'a> {
+    pub fn start(&self) -> &libbpf_rs::Map {
+        self.inner.map("start").unwrap()
+    }
+
+    pub fn events(&self) -> &libbpf_rs::Map {
+        self.inner.map("events").unwrap()
+    }
+}
+
+pub struct GethostlatencyMapsMut<'a> {
+    inner: &'a mut libbpf_rs::Object,
+}
+
+impl<'a> GethostlatencyMapsMut<'a> {
     pub fn start(&mut self) -> &mut libbpf_rs::Map {
-        self.inner.map_unwrap("start")
+        self.inner.map_mut("start").unwrap()
     }
 
     pub fn events(&mut self) -> &mut libbpf_rs::Map {
-        self.inner.map_unwrap("events")
+        self.inner.map_mut("events").unwrap()
     }
 }
 
 pub struct GethostlatencyProgs<'a> {
-    inner: &'a mut libbpf_rs::Object,
+    inner: &'a libbpf_rs::Object,
 }
 
 impl<'a> GethostlatencyProgs<'a> {
+    pub fn handle__entry_getaddrinfo(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__entry_getaddrinfo").unwrap()
+    }
+
+    pub fn handle__entry_gethostbyname(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__entry_gethostbyname").unwrap()
+    }
+
+    pub fn handle__entry_gethostbyname2(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__entry_gethostbyname2").unwrap()
+    }
+
+    pub fn handle__return_getaddrinfo(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__return_getaddrinfo").unwrap()
+    }
+
+    pub fn handle__return_gethostbyname(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__return_gethostbyname").unwrap()
+    }
+
+    pub fn handle__return_gethostbyname2(&self) -> &libbpf_rs::Program {
+        self.inner.prog("handle__return_gethostbyname2").unwrap()
+    }
+}
+
+pub struct GethostlatencyProgsMut<'a> {
+    inner: &'a mut libbpf_rs::Object,
+}
+
+impl<'a> GethostlatencyProgsMut<'a> {
     pub fn handle__entry_getaddrinfo(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__entry_getaddrinfo")
+        self.inner.prog_mut("handle__entry_getaddrinfo").unwrap()
     }
 
     pub fn handle__entry_gethostbyname(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__entry_gethostbyname")
+        self.inner.prog_mut("handle__entry_gethostbyname").unwrap()
     }
 
     pub fn handle__entry_gethostbyname2(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__entry_gethostbyname2")
+        self.inner.prog_mut("handle__entry_gethostbyname2").unwrap()
     }
 
     pub fn handle__return_getaddrinfo(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__return_getaddrinfo")
+        self.inner.prog_mut("handle__return_getaddrinfo").unwrap()
     }
 
     pub fn handle__return_gethostbyname(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__return_gethostbyname")
+        self.inner.prog_mut("handle__return_gethostbyname").unwrap()
     }
 
     pub fn handle__return_gethostbyname2(&mut self) -> &mut libbpf_rs::Program {
-        self.inner.prog_unwrap("handle__return_gethostbyname2")
+        self.inner
+            .prog_mut("handle__return_gethostbyname2")
+            .unwrap()
     }
 }
 
@@ -184,14 +284,22 @@ pub struct GethostlatencySkel<'a> {
 }
 
 impl<'a> GethostlatencySkel<'a> {
-    pub fn progs(&mut self) -> GethostlatencyProgs {
-        GethostlatencyProgs {
+    pub fn progs(&self) -> GethostlatencyProgs {
+        GethostlatencyProgs { inner: &self.obj }
+    }
+
+    pub fn progs_mut(&mut self) -> GethostlatencyProgsMut {
+        GethostlatencyProgsMut {
             inner: &mut self.obj,
         }
     }
 
-    pub fn maps(&mut self) -> GethostlatencyMaps {
-        GethostlatencyMaps {
+    pub fn maps(&self) -> GethostlatencyMaps {
+        GethostlatencyMaps { inner: &self.obj }
+    }
+
+    pub fn maps_mut(&mut self) -> GethostlatencyMapsMut {
+        GethostlatencyMapsMut {
             inner: &mut self.obj,
         }
     }
